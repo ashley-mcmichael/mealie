@@ -1,0 +1,130 @@
+# Builds the family recipe box: the latest Mealie release plus our
+# smart-scaling commits, published as ghcr.io/<owner>/mealie:family.
+# VM 101 pulls that tag nightly (home-server repo, recipes/deploy).
+name: Build family Mealie
+
+on:
+  schedule:
+    - cron: "17 8 * * *" # daily, about 4:17 AM Eastern
+  workflow_dispatch:
+    inputs:
+      force:
+        description: Rebuild even if this version was already built
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency: family-build
+
+env:
+  UPSTREAM: mealie-recipes/mealie
+  PATCH_BRANCH: smart-scaling
+  # The upstream commit our patch was written on. Until a release contains it
+  # (v3.28.0 does not), we build on this commit itself.
+  PATCH_BASE: 879b133b5f98dd91419948f363d2d6d58793c3a0
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Check out upstream Mealie
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.UPSTREAM }}
+          fetch-depth: 0
+          path: src
+
+      - name: Pick the base version
+        id: base
+        working-directory: src
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eu
+          git fetch -q --no-tags "https://github.com/${{ github.repository }}" "$PATCH_BRANCH:patch"
+          tag=$(gh release view --repo "$UPSTREAM" --json tagName -q .tagName)
+          if git merge-base --is-ancestor "$PATCH_BASE" "$tag"; then
+            base=$tag; label=$tag
+          else
+            base=$PATCH_BASE; label="nightly-${PATCH_BASE:0:9}"
+          fi
+          echo "base=$base" >> "$GITHUB_OUTPUT"
+          echo "label=$label" >> "$GITHUB_OUTPUT"
+          echo "image=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/mealie" >> "$GITHUB_OUTPUT"
+          echo "Latest release $tag; building on $base as family-$label"
+
+      - name: Log in to GitHub's container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Skip if already built
+        id: skip
+        run: |
+          if [ "${{ inputs.force }}" != "true" ] && docker manifest inspect "${{ steps.base.outputs.image }}:family-${{ steps.base.outputs.label }}" >/dev/null 2>&1; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"; echo "family-${{ steps.base.outputs.label }} already exists"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Apply our patch
+        if: steps.skip.outputs.skip == 'false'
+        working-directory: src
+        run: |
+          set -eu
+          git -c advice.detachedHead=false checkout -q "${{ steps.base.outputs.base }}"
+          git -c user.name=family-build -c user.email=family-build@users.noreply.github.com \
+            cherry-pick "$PATCH_BASE..patch"
+          git log --oneline -3
+
+      - name: Set up Node
+        if: steps.skip.outputs.skip == 'false'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Test recipe scaling
+        if: steps.skip.outputs.skip == 'false'
+        working-directory: src/frontend
+        run: |
+          set -eu
+          npm install --global pnpm@11
+          pnpm install --frozen-lockfile
+          pnpm exec nuxi prepare
+          pnpm exec vitest run app/composables/recipes
+
+      - name: Set up Docker Buildx
+        if: steps.skip.outputs.skip == 'false'
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and publish the image
+        if: steps.skip.outputs.skip == 'false'
+        uses: docker/build-push-action@v6
+        with:
+          context: src
+          file: src/docker/Dockerfile
+          platforms: linux/amd64
+          push: true
+          build-args: COMMIT=${{ steps.base.outputs.label }}-family
+          labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
+          tags: |
+            ${{ steps.base.outputs.image }}:family-${{ steps.base.outputs.label }}
+            ${{ steps.base.outputs.image }}:family
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Phone alert on failure
+        if: failure()
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+        run: |
+          [ -n "$NTFY_TOPIC" ] || { echo "No NTFY_TOPIC secret; no alert sent"; exit 0; }
+          printf 'url = "https://ntfy.sh/%s"\n' "$NTFY_TOPIC" | curl -fsS -o /dev/null -m 15 -K - \
+            -H "Title: Recipe box build failed" -H "Priority: high" -H "Tags: warning" \
+            --data-binary "Our scaling change may no longer fit the new Mealie release. ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
