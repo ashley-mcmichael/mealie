@@ -3,7 +3,7 @@ import { makeWrapper } from "~/tests/utils";
 import type { CreateIngredientUnit, RecipeIngredient } from "~/lib/api/types/recipe";
 import { canConvertIngredient, useUnitConversion } from "../use-unit-conversion";
 
-const { convertIngredient } = makeWrapper(() => useUnitConversion());
+const { convertIngredient, tidyScaledIngredient } = makeWrapper(() => useUnitConversion());
 
 const ingredient = (quantity: number, unit: Partial<CreateIngredientUnit> | null): RecipeIngredient => ({
   quantity,
@@ -256,5 +256,77 @@ describe("convertIngredient", () => {
     expect(converted.referenceId).toBe("abc");
     expect(converted.food).toBe(input.food);
     expect(converted).not.toBe(input);
+  });
+});
+
+describe("tidyScaledIngredient", () => {
+  const customary = (standardUnit: string, standardQuantity: number, name: string) => (quantity: number) =>
+    ingredient(quantity, { name, standardUnit, standardQuantity });
+  const tsp = customary("fluid_ounce", 1 / 6, "teaspoon");
+  const tbsp = customary("fluid_ounce", 1 / 2, "tablespoon");
+  const cups = customary("cup", 1, "cup");
+  const quarts = customary("cup", 4, "quart");
+  const oz = customary("ounce", 1, "ounce");
+  const lb = customary("pound", 1, "pound");
+
+  /** What the reader sees: the scaled quantity and the unit it is shown in. */
+  const shown = (input: RecipeIngredient, scale: number) => {
+    const tidied = tidyScaledIngredient(input, scale);
+    return `${Number(((tidied.quantity as number) * scale).toFixed(4))} ${tidied.unit?.name}`;
+  };
+
+  const cases: [string, RecipeIngredient, number, string][] = [
+    ["2 tsp at 3x is 2 tbsp", tsp(2), 3, "2 tablespoon"],
+    ["1 tsp at 3x is 1 tbsp", tsp(1), 3, "1 tablespoon"],
+    ["2 tsp at 2x stays 4 tsp, not 1 1/3 tbsp", tsp(2), 2, "4 teaspoon"],
+    ["1 tbsp at 1/2x is 1 1/2 tsp", tbsp(1), 0.5, "1.5 teaspoon"],
+    ["1/4 tsp at 1/2x is 1/8 tsp", tsp(0.25), 0.5, "0.125 teaspoon"],
+    ["3 tbsp at 2x stays 6 tbsp, not 3/8 cup", tbsp(3), 2, "6 tablespoon"],
+    ["4 tbsp at 2x is 1/2 cup", tbsp(4), 2, "0.5 cup"],
+    ["3/4 cup at 3x is 2 1/4 cups, not 2 1/3", cups(0.75), 3, "2.25 cup"],
+    ["3/4 cup at 1/2x is 6 tbsp, not 3/8 cup", cups(0.75), 0.5, "6 tablespoon"],
+    ["1/3 cup at 1 1/2x is 1/2 cup", cups(1 / 3), 1.5, "0.5 cup"],
+    ["2 cups at 2x stays 4 cups, not a quart", cups(2), 2, "4 cup"],
+    ["a quart halved is 2 cups", quarts(1), 0.5, "2 cup"],
+    ["4 oz at 4x is 1 lb", oz(4), 4, "1 pound"],
+    ["4 oz at 3x stays 12 oz", oz(4), 3, "12 ounce"],
+    ["1 lb halved is 8 oz", lb(1), 0.5, "8 ounce"],
+    ["1500g in metric is 1.5kg", grams(500), 3, "1.5 kilogram"],
+  ];
+
+  test.each(cases)("%s", (_label, input, scale, expected) => {
+    expect(shown(input, scale)).toBe(expected);
+  });
+
+  test("leaves the recipe exactly as written at 1x", () => {
+    const input = tsp(6);
+    expect(tidyScaledIngredient(input, 1)).toBe(input);
+  });
+
+  test("keeps the author's own unit object when the unit doesn't change", () => {
+    const input = tsp(2);
+    expect(tidyScaledIngredient(input, 2).unit).toBe(input.unit);
+  });
+
+  test("a new unit follows the author's abbreviation style", () => {
+    const written = ingredient(2, { name: "teaspoon", standardUnit: "fluid_ounce", standardQuantity: 1 / 6, useAbbreviation: false });
+    expect(tidyScaledIngredient(written, 3).unit?.useAbbreviation).toBe(false);
+  });
+
+  test("falls back to plain scaling when no unit states the amount exactly", () => {
+    // 1/3 cup at 1 1/4x is 5/12 cup: 6 2/3 tbsp, or 20 tsp — neither is something to measure
+    const input = cups(1 / 3);
+    expect(tidyScaledIngredient(input, 1.25)).toBe(input);
+  });
+
+  test("never counts out more than 8 spoonfuls", () => {
+    // 3/4 cup at 15/8x is 1 13/32 cups: exactly 22 1/2 tbsp, which no one would measure
+    const input = cups(0.75);
+    expect(tidyScaledIngredient(input, 15 / 8)).toBe(input);
+  });
+
+  test("leaves ingredients it can't convert alone", () => {
+    const input = ingredient(3, { name: "pinch" });
+    expect(tidyScaledIngredient(input, 2)).toBe(input);
   });
 });
