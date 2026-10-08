@@ -2,6 +2,12 @@ import { useLocalStorage } from "@vueuse/core";
 import type { UnitSystem } from "./unit-systems";
 
 /**
+ * Whether scaled ingredients are restated in their tidiest unit (2 tsp at 3x reads as 2 tbsp)
+ * until the reader says otherwise. A recipe at 1x always reads exactly as written either way.
+ */
+export const TIDY_SCALED_UNITS_DEFAULT = true;
+
+/**
  * The unit system recipes are displayed in, or null to show them exactly as they were written.
  *
  * Null is the default and stays the default: a recipe reads as its author typed it until the
@@ -12,9 +18,9 @@ import type { UnitSystem } from "./unit-systems";
  * this, so it doesn't sync across devices.
  */
 export function useUnitSystem() {
-  const preference = useLocalStorage<{ unitSystem: UnitSystem | null }>(
+  const preference = useLocalStorage<{ unitSystem: UnitSystem | null; tidyScaledUnits: boolean }>(
     "recipe-unit-system-preferences",
-    { unitSystem: null },
+    { unitSystem: null, tidyScaledUnits: TIDY_SCALED_UNITS_DEFAULT },
     { mergeDefaults: true },
   );
 
@@ -25,6 +31,13 @@ export function useUnitSystem() {
     },
   });
 
+  const tidyScaledUnits = computed<boolean>({
+    get: () => preference.value.tidyScaledUnits,
+    set: (value) => {
+      preference.value.tidyScaledUnits = value;
+    },
+  });
+
   /** Whether quantities are being rewritten at all, as opposed to shown as authored. */
   const isConverting = computed(() => unitSystem.value !== null);
 
@@ -32,5 +45,5 @@ export function useUnitSystem() {
     preference.value.unitSystem = null;
   }
 
-  return { unitSystem, isConverting, showAsWritten };
+  return { unitSystem, tidyScaledUnits, isConverting, showAsWritten };
 }

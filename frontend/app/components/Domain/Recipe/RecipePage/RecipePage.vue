@@ -279,12 +279,13 @@ const { pageMode, setMode, isEditForm, isEditJSON, isCookMode, isEditMode, isPar
 const { deactivateNavigationWarning } = useNavigationWarning();
 const scale = ref(1);
 
-const { unitSystem } = useUnitSystem();
-const { convertIngredient } = useUnitConversion();
+const { unitSystem, tidyScaledUnits } = useUnitSystem();
+const { convertIngredient, tidyScaledIngredient } = useUnitConversion();
 
 /**
  * The recipe as the reader asked to see it — the recipe itself unless they've opted into a unit
- * system. Cook mode, print and the ingredient list all read this, so they convert together.
+ * system or scaled it with tidy units on. Cook mode, print and the ingredient list all read this,
+ * so they convert together.
  *
  * Returns `recipe` by identity whenever nothing is being converted, and always does so in edit
  * mode. That is load-bearing rather than cosmetic: `recipe` is a defineModel the editors below
@@ -292,15 +293,19 @@ const { convertIngredient } = useUnitConversion();
  * display-only and never reaches anything that saves.
  */
 const displayedRecipe = computed<NoUndefinedField<Recipe>>(() => {
-  if (isEditMode.value || !unitSystem.value) {
+  const system = unitSystem.value;
+  const tidy = tidyScaledUnits.value && scale.value !== 1;
+  if (isEditMode.value || (!system && !tidy)) {
     return recipe.value;
   }
 
   return {
     ...recipe.value,
-    recipeIngredient: recipe.value.recipeIngredient.map(
-      ingredient => convertIngredient(ingredient, unitSystem.value!, scale.value),
-    ),
+    recipeIngredient: recipe.value.recipeIngredient.map((ingredient) => {
+      const converted = system ? convertIngredient(ingredient, system, scale.value) : ingredient;
+      // Identity means the unit was already the reader's own, which is what tidying is for
+      return tidy && converted === ingredient ? tidyScaledIngredient(ingredient, scale.value) : converted;
+    }),
   };
 });
 

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test } from "vitest";
-import { useUnitSystem } from "../use-unit-system";
+import { TIDY_SCALED_UNITS_DEFAULT, useUnitSystem } from "../use-unit-system";
 
 describe("useUnitSystem", () => {
   beforeEach(() => {
@@ -42,5 +42,15 @@ describe("useUnitSystem", () => {
 
     expect(unitSystem.value).toBeNull();
     expect(isConverting.value).toBe(false);
+  });
+
+  test("tidy scaled units starts at the default and can be switched off", async () => {
+    const { tidyScaledUnits } = useUnitSystem();
+    expect(tidyScaledUnits.value).toBe(TIDY_SCALED_UNITS_DEFAULT);
+
+    tidyScaledUnits.value = !TIDY_SCALED_UNITS_DEFAULT;
+    await nextTick();
+
+    expect(useUnitSystem().tidyScaledUnits.value).toBe(!TIDY_SCALED_UNITS_DEFAULT);
   });
 });

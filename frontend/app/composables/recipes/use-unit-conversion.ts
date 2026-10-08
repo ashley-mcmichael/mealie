@@ -25,6 +25,33 @@ const FRACTION_DENOMINATORS = [1, 2, 3, 4, 8];
 const FINEST_DENOMINATOR = Math.max(...FRACTION_DENOMINATORS);
 
 /**
+ * How far a tidied quantity may sit from the true one. Tidying restates a unit the author already
+ * chose, so it has no excuse to be approximate: 2 1/4 cups must not become 2 1/3 (4% more sugar).
+ */
+const TIDY_ROUNDING_THRESHOLD = 0.01;
+
+/**
+ * Fractions each customary rung may show when tidying, coarsest first — the ones a set of
+ * measuring spoons and cups can actually hold. There is no 1/3 tablespoon or 3/8 cup spoon, so
+ * 4 tsp stays 4 tsp rather than becoming 1 1/3 tbsp, and 6 tbsp stays 6 tbsp rather than 3/8 cup.
+ */
+const TIDY_DENOMINATORS: Record<string, number[]> = {
+  teaspoon: [1, 2, 4, 8],
+  tablespoon: [1, 2],
+  cup: [1, 2, 3, 4],
+  quart: [1, 2, 4],
+  gallon: [1, 2, 4],
+  ounce: [1, 2, 4],
+  pound: [1, 2, 4],
+};
+
+/**
+ * Past this many spoonfuls a tidy count stops being easier than the scaled original: nobody
+ * measures 22 1/2 tablespoons of sugar, so that falls back to plain scaling instead.
+ */
+const TIDY_MAX_SPOONS: Record<string, number> = { teaspoon: 8, tablespoon: 8 };
+
+/**
  * Resolve the values needed to convert an ingredient, or null if it can't be converted.
  *
  * An ingredient is only convertible if its unit was matched to a standardized unit when it was
@@ -74,8 +101,8 @@ function pickRung(rungs: UnitRung[], magnitude: number): UnitRung {
  *
  * The step is sized from the value itself, so grams and kilograms round to the same place.
  */
-function roundDecimal(value: number): number {
-  const target = value * DECIMAL_ROUNDING_THRESHOLD * 2;
+function roundDecimal(value: number, threshold = DECIMAL_ROUNDING_THRESHOLD): number {
+  const target = value * threshold * 2;
   const power = 10 ** Math.floor(Math.log10(target));
 
   let step = power;
@@ -140,6 +167,38 @@ function roundToRung(rungs: UnitRung[], magnitude: number): { rung: UnitRung; qu
   }
 
   return { rung, quantity: finestFraction(value) };
+}
+
+/**
+ * Find the largest rung that states a magnitude exactly, as a kitchen would measure it, or null
+ * when none does. Every rung but the smallest must reach its takeover multiple, so 1/2 tbsp is
+ * never offered over 1 1/2 tsp.
+ */
+function findTidyRung(rungs: UnitRung[], magnitude: number): { rung: UnitRung; quantity: number } | null {
+  for (let i = rungs.length - 1; i >= 0; i--) {
+    const rung = rungs[i]!;
+    const value = magnitude / rung.base;
+    // Bases are irrational in each other's terms, so 3 tsp lands a hair under 1 tbsp
+    if (i > 0 && value < rung.takeover * (1 - 1e-9)) {
+      continue;
+    }
+
+    if (!rung.fraction) {
+      return { rung, quantity: roundDecimal(value, TIDY_ROUNDING_THRESHOLD) };
+    }
+
+    for (const denominator of TIDY_DENOMINATORS[rung.unit] ?? [1]) {
+      const rounded = Math.round(value * denominator) / denominator;
+      if (rounded > 0 && Math.abs(rounded - value) <= value * TIDY_ROUNDING_THRESHOLD) {
+        if (rounded > (TIDY_MAX_SPOONS[rung.unit] ?? Infinity)) {
+          return null;
+        }
+        return { rung, quantity: rounded };
+      }
+    }
+  }
+
+  return null;
 }
 
 export function useUnitConversion() {
@@ -207,5 +266,50 @@ export function useUnitConversion() {
     };
   }
 
-  return { convertIngredient };
+  /**
+   * Restate a scaled ingredient in the tidiest unit of the system it was written in, so 2 tsp at
+   * 3x reads as 2 tbsp rather than 6 tsp. Display only — nothing is written back.
+   *
+   * At 1x the recipe is shown exactly as written. Otherwise the largest unit that states the
+   * scaled amount exactly (within 1%) in measurable fractions wins; when none does, the
+   * ingredient is returned unchanged, with the same object identity, and scales as it always has.
+   * Volumes climb no higher than cups unless the author wrote in something bigger, since recipes
+   * say "4 cups", not "1 quart".
+   *
+   * Like convertIngredient, the quantity handed back is unscaled so call sites apply scale.
+   */
+  function tidyScaledIngredient(ingredient: RecipeIngredient, scale = 1): RecipeIngredient {
+    const convertible = scale !== 1 ? resolveConvertible(ingredient) : null;
+    if (!convertible) {
+      return ingredient;
+    }
+
+    const { quantity, standardQuantity, standard } = convertible;
+    const system: UnitSystem = standard.customary ? "us" : "metric";
+    const authoredBase = standardQuantity * standard.base;
+    const cup = UNIT_SYSTEMS[system][standard.dimension].find(rung => rung.unit === "cup");
+    const ceiling = cup ? Math.max(cup.base, authoredBase) * (1 + 1e-9) : Infinity;
+    const rungs = UNIT_SYSTEMS[system][standard.dimension].filter(rung => rung.base <= ceiling);
+
+    const tidy = findTidyRung(rungs, quantity * authoredBase * scale);
+    if (!tidy) {
+      return ingredient;
+    }
+
+    // Keep the author's own unit object when the tidy unit is the one they wrote, so its name and
+    // display settings survive; only a genuinely different unit is swapped in.
+    const sameUnit = Math.abs(tidy.rung.base - authoredBase) <= authoredBase * 1e-6;
+
+    return {
+      ...ingredient,
+      quantity: tidy.quantity / scale,
+      // A tidied unit stays in the author's system, so it keeps their choice of "tbsp" or
+      // "tablespoons" rather than switching style mid-list the way a conversion does
+      unit: sameUnit
+        ? ingredient.unit
+        : { ...unitFromRung(tidy.rung), useAbbreviation: ingredient.unit?.useAbbreviation ?? false },
+    };
+  }
+
+  return { convertIngredient, tidyScaledIngredient };
 }

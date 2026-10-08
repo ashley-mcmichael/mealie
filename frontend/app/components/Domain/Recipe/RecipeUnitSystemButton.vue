@@ -38,6 +38,13 @@
       >
         <v-list-item-title>{{ option.text }}</v-list-item-title>
       </v-list-item>
+      <v-divider />
+      <v-list-item @click="tidyScaledUnits = !tidyScaledUnits">
+        <template #prepend>
+          <v-checkbox-btn :model-value="tidyScaledUnits" density="compact" readonly />
+        </template>
+        <v-list-item-title>{{ $t("recipe.unit-system.tidy-when-scaling") }}</v-list-item-title>
+      </v-list-item>
     </v-list>
   </v-menu>
 </template>
@@ -51,7 +58,7 @@ import type { Recipe } from "~/lib/api/types/recipe";
 const props = defineProps<{ recipe: NoUndefinedField<Recipe> }>();
 
 const i18n = useI18n();
-const { unitSystem } = useUnitSystem();
+const { unitSystem, tidyScaledUnits } = useUnitSystem();
 
 /**
  * Readers call US customary "imperial", so that's what the labels say. The stored value stays

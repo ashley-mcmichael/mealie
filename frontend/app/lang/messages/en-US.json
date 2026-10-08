@@ -608,7 +608,8 @@
       "metric": "Metric",
       "metric-with-hint": "Metric (g, ml)",
       "imperial": "Imperial",
-      "imperial-with-hint": "Imperial (cups, oz)"
+      "imperial-with-hint": "Imperial (cups, oz)",
+      "tidy-when-scaling": "Tidy units when scaling (6 tsp → 2 tbsp)"
     },
     "parser": {
       "ingredient-parser": "Ingredient Parser",
