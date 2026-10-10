@@ -73,7 +73,7 @@ export default defineNuxtConfig({
     viewTransition: true,
   },
 
-  css: ["~/assets/main.css", "~/assets/style-overrides.scss"],
+  css: ["~/assets/main.css", "~/assets/style-overrides.scss", "~/assets/family-skin.css"],
 
   runtimeConfig: {
     sessionPassword: process.env.SESSION_PASSWORD || "password-with-at-least-32-characters",
@@ -158,6 +158,16 @@ export default defineNuxtConfig({
     },
   },
   fonts: {
+    // Family skin (assets/family-skin.css): Fraunces with its optical-size and SOFT axes,
+    // and Source Sans 3, whose weights start at 200 (Google rejects the default 100-900)
+    google: {
+      experimental: {
+        variableAxis: {
+          Fraunces: { opsz: [["9", "144"]], SOFT: [["0", "100"]] },
+        },
+      },
+    },
+    families: [{ name: "Source Sans 3", provider: "google", weights: ["200 900"] }],
     defaults: {
       weights: ["100 900"],
       styles: ["normal", "italic"],

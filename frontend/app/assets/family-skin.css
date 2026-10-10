@@ -1,0 +1,150 @@
+/* Family recipe box skin ("Bread Bin"), light only. Spec: home-server recipes/design/DESIGN-SYSTEM.md
+   (INFRA-31). Colours: THEME_LIGHT_* env. Vuetify CSS is in @layer, so these win without !important. */
+
+:root .v-theme--light {
+  --v-theme-background: 238, 241, 236; /* enamel white page #EEF1EC */
+  --v-theme-surface: 251, 252, 250; /* card white #FBFCFA */
+  --v-theme-on-background: 36, 38, 31; /* ink #24261F */
+  --v-theme-on-surface: 36, 38, 31;
+  --v-border-color: 46, 79, 53; /* hairline: bottle at 10% */
+  --v-border-opacity: 0.1;
+  --v-shadow-color: 60, 48, 30;
+  --v-font-body: "Source Sans 3", system-ui, sans-serif;
+  --v-font-heading: "Source Sans 3", system-ui, sans-serif;
+  --bb-pencil: #66675a;
+  --bb-hair: rgba(46, 79, 53, 0.1);
+  --bb-foot: rgba(36, 38, 31, 0.35);
+  --bb-lift: 0 8px 24px rgba(60, 48, 30, 0.18);
+}
+
+/* Page: enamel white with one faint speckle. Menus and dialogs live outside the app root. */
+.v-theme--light:is(.v-application, .v-overlay) {
+  font-family: "Source Sans 3", system-ui, sans-serif;
+}
+.v-application.v-theme--light {
+  background-color: #eef1ec;
+  background-image: radial-gradient(rgba(46, 79, 53, 0.07) 1px, transparent 1.4px);
+  background-size: 9px 9px;
+}
+
+/* Fraunces 800: wordmark, recipe title, section and page headings only.
+   801 picks the variable face (it has the SOFT axis) over Google's static 800 fallback. */
+.v-theme--light .v-app-bar .v-toolbar-title,
+.v-theme--light .v-main :is(h1, h2.text-h5, .v-card-title.text-h5, .text-headline-small, .text-headline-medium) {
+  font-family: "Fraunces", Georgia, serif;
+  font-weight: 801;
+  font-variation-settings:
+    "opsz" 48,
+    "SOFT" 100;
+  opacity: 1;
+}
+
+/* Top bar: bottle fill (theme primary), "RECIPES" wordmark, enamel rim along the bottom */
+.v-theme--light.v-app-bar .v-toolbar-title {
+  font-size: 20px;
+  letter-spacing: 0.02em;
+}
+.v-theme--light.v-app-bar::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: 5px;
+  pointer-events: none;
+  background: linear-gradient(#eef1ec 0 2px, rgb(var(--v-theme-primary)) 2px 3px, #eef1ec 3px);
+}
+/* Buttons: square corners. Colour fills stand on a 0-blur foot and sink when pressed (ENAMEL PRESS). */
+.v-theme--light.v-btn {
+  border-radius: 4px;
+  letter-spacing: normal;
+  box-shadow: none;
+}
+.v-theme--light.v-btn--icon:is(.v-btn--variant-text, .v-btn--variant-plain) {
+  border-radius: 50%;
+}
+.v-theme--light.v-btn:is(.v-btn--variant-elevated, .v-btn--variant-flat)[class*=" bg-"] {
+  box-shadow: 0 2px 0 var(--bb-foot);
+  font-weight: 600;
+  transition:
+    transform 180ms cubic-bezier(0.3, 1.4, 0.5, 1),
+    box-shadow 180ms cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+.v-theme--light.v-btn:is(.v-btn--variant-elevated, .v-btn--variant-flat)[class*=" bg-"]:active {
+  transform: translateY(2px);
+  box-shadow: 0 0 0 var(--bb-foot);
+  transition-duration: 120ms;
+  transition-timing-function: ease-out;
+}
+/* Fills, not outlines: an outlined button becomes a light tint of its own colour */
+.v-theme--light.v-btn--variant-outlined {
+  border-color: transparent;
+  background-color: color-mix(in srgb, currentColor 9%, transparent);
+}
+/* In-page cards: card white, 1px hairline, 14px corners, no shadow or hover lift */
+.v-theme--light .v-main .v-card {
+  border-radius: 14px;
+  border: 1px solid var(--bb-hair);
+  box-shadow: none;
+}
+.v-theme--light .v-main .v-card .v-card--flat {
+  border: 0;
+}
+/* Dialogs, menus, sheets and toasts: no hairline, one overlay lift */
+.v-theme--light .v-overlay__content > :is(.v-card, .v-sheet, .v-list),
+.v-theme--light .v-snackbar__wrapper {
+  border: 0;
+  box-shadow: var(--bb-lift);
+}
+.v-theme--light.v-dialog > .v-overlay__content > .v-card {
+  border-radius: 14px;
+}
+
+/* Chips: pill, no border, tinted fill (bottle at 9% or walnut at 11%) with coloured text */
+.v-theme--light.v-chip {
+  border-radius: 999px;
+  font-weight: 600;
+  box-shadow: none;
+}
+.v-theme--light.v-chip.bg-primary {
+  background-color: rgba(46, 79, 53, 0.09);
+  color: rgb(var(--v-theme-primary));
+}
+.v-theme--light.v-chip.bg-accent {
+  background-color: rgba(122, 78, 45, 0.11);
+  color: rgb(var(--v-theme-accent));
+}
+
+/* CHECK-OFF. Ingredients: hairline between rows; ticked = leaf box, pencil text, strike.
+   Steps (.disabled-card): fill goes, title in pencil with a strike, Mealie's check shows. */
+.v-theme--light.ingredient-list-item {
+  border-bottom: 1px solid var(--bb-hair);
+}
+.v-theme--light.ingredient-list-item .v-selection-control__input .v-icon {
+  transition: color 150ms ease-out;
+}
+.v-theme--light.ingredient-list-item .ingredient-item,
+.v-theme--light .v-main .v-card .recipe-step-title .summary-wrapper {
+  text-decoration: line-through transparent 1.5px;
+  transition:
+    color 200ms ease-out,
+    text-decoration-color 200ms ease-out;
+}
+.v-theme--light.ingredient-list-item:has(.v-selection-control--dirty) .ingredient-item,
+.v-theme--light .v-main .v-card.disabled-card .recipe-step-title .summary-wrapper {
+  color: var(--bb-pencil);
+  text-decoration-color: var(--bb-pencil);
+}
+.v-theme--light .v-main .v-card.disabled-card {
+  background-color: transparent;
+  border-color: rgba(46, 79, 53, 0.14);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .v-theme--light.v-btn,
+  .v-theme--light.ingredient-list-item *,
+  .v-theme--light .recipe-step-title * {
+    transition: none !important;
+  }
+  .v-theme--light.v-btn:active {
+    transform: none !important;
+  }
+}
