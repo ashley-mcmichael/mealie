@@ -25,7 +25,7 @@
         style="cursor: pointer"
         @click="$router.push(routerLink)"
       >
-        Mealie
+        RECIPES
       </v-toolbar-title>
     </div>
     <RecipeDialogSearch ref="domSearchDialog" />

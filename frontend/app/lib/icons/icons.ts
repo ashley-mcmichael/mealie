@@ -111,7 +111,6 @@ import {
   mdiShapeOutline,
   mdiShareVariant,
   mdiSilverwareForkKnife,
-  mdiSilverwareVariant,
   mdiSlotMachine,
   mdiSortAlphabeticalAscending,
   mdiSortAlphabeticalDescending,
@@ -148,9 +147,12 @@ import {
 
 } from "@mdi/js";
 
+// Family recipe box logo: a lidded stockpot (24x24 path)
+const familyPot = "M10 3h4a1 1 0 0 1 0 2h-1v1.05A8 8 0 0 1 20 11H4a8 8 0 0 1 7-4.95V5h-1a1 1 0 0 1 0-2zM2 12h20v1a1 1 0 0 1-1 1h-1v4a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3v-4H3a1 1 0 0 1-1-1v-1z";
+
 export const icons = {
   // Primary
-  primary: mdiSilverwareVariant,
+  primary: familyPot,
 
   wrench: mdiWrench,
   chart: mdiChartLine,
