@@ -1,5 +1,5 @@
 # Builds the family recipe box: the latest Mealie release plus our
-# smart-scaling commits, published as ghcr.io/<owner>/mealie:family.
+# smart-scaling commits and the Bread Bin skin, published as ghcr.io/<owner>/mealie:family.
 # VM 101 pulls that tag nightly (home-server repo, recipes/deploy).
 name: Build family Mealie
 
@@ -22,6 +22,10 @@ concurrency: family-build
 env:
   UPSTREAM: mealie-recipes/mealie
   PATCH_BRANCH: smart-scaling
+  # Our look (colours, fonts, logo). Branched from PATCH_BRANCH; only its own
+  # commits are applied, after the patch. Kept apart so smart-scaling stays
+  # clean for upstream.
+  SKIN_BRANCH: recipes-bread-bin
   # The upstream commit our patch was written on. Until a release contains it
   # (v3.28.0 does not), we build on this commit itself.
   PATCH_BASE: 879b133b5f98dd91419948f363d2d6d58793c3a0
@@ -45,13 +49,15 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -eu
-          git fetch -q --no-tags "https://github.com/${{ github.repository }}" "$PATCH_BRANCH:patch"
+          git fetch -q --no-tags "https://github.com/${{ github.repository }}" "$PATCH_BRANCH:patch" "$SKIN_BRANCH:skin"
           tag=$(gh release view --repo "$UPSTREAM" --json tagName -q .tagName)
           if git merge-base --is-ancestor "$PATCH_BASE" "$tag"; then
             base=$tag; label=$tag
           else
             base=$PATCH_BASE; label="nightly-${PATCH_BASE:0:9}"
           fi
+          # The skin's tip in the label means a skin change gets a fresh build.
+          label="$label-$(git rev-parse --short=9 skin)"
           echo "base=$base" >> "$GITHUB_OUTPUT"
           echo "label=$label" >> "$GITHUB_OUTPUT"
           echo "image=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/mealie" >> "$GITHUB_OUTPUT"
@@ -81,7 +87,9 @@ jobs:
           git -c advice.detachedHead=false checkout -q "${{ steps.base.outputs.base }}"
           git -c user.name=family-build -c user.email=family-build@users.noreply.github.com \
             cherry-pick "$PATCH_BASE..patch"
-          git log --oneline -3
+          git -c user.name=family-build -c user.email=family-build@users.noreply.github.com \
+            cherry-pick "patch..skin"
+          git log --oneline -4
 
       - name: Set up Node
         if: steps.skip.outputs.skip == 'false'
@@ -127,4 +135,4 @@ jobs:
           [ -n "$NTFY_TOPIC" ] || { echo "No NTFY_TOPIC secret; no alert sent"; exit 0; }
           printf 'url = "https://ntfy.sh/%s"\n' "$NTFY_TOPIC" | curl -fsS -o /dev/null -m 15 -K - \
             -H "Title: Recipe box build failed" -H "Priority: high" -H "Tags: warning" \
-            --data-binary "Our scaling change may no longer fit the new Mealie release. ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            --data-binary "Our scaling change or skin may no longer fit the new Mealie release. ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
