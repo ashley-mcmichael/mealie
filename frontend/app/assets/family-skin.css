@@ -1,150 +1,149 @@
-/* Family recipe box skin ("Bread Bin"), light only. Spec: home-server recipes/design/DESIGN-SYSTEM.md
-   (INFRA-31). Colours: THEME_LIGHT_* env. Vuetify CSS is in @layer, so these win without !important. */
+/* Family recipe box skin ("Bread Bin"), light and dark. Spec: home-server recipes/design/DESIGN-SYSTEM.md
+   (INFRA-31). Colours: THEME_LIGHT_* / THEME_DARK_* env. Vuetify CSS is in @layer, so these win without
+   !important. [class*="v-theme--"] means either theme; per-theme values live in the --bb-* vars. */
 
 :root .v-theme--light {
   --v-theme-background: 238, 241, 236; /* enamel white page #EEF1EC */
   --v-theme-surface: 251, 252, 250; /* card white #FBFCFA */
-  --v-theme-on-background: 36, 38, 31; /* ink #24261F */
-  --v-theme-on-surface: 36, 38, 31;
+  --v-theme-on-background: 36, 38, 31; --v-theme-on-surface: 36, 38, 31; /* ink #24261F */
   --v-border-color: 46, 79, 53; /* hairline: bottle at 10% */
-  --v-border-opacity: 0.1;
   --v-shadow-color: 60, 48, 30;
-  --v-font-body: "Source Sans 3", system-ui, sans-serif;
-  --v-font-heading: "Source Sans 3", system-ui, sans-serif;
+  --bb-page: #eef1ec; --bb-rim: #2e4f35;
   --bb-pencil: #66675a;
-  --bb-hair: rgba(46, 79, 53, 0.1);
+  --bb-speck: rgba(46, 79, 53, 0.07);
+  --bb-hair: rgba(46, 79, 53, 0.1); --bb-done: rgba(46, 79, 53, 0.14);
   --bb-foot: rgba(36, 38, 31, 0.35);
   --bb-lift: 0 8px 24px rgba(60, 48, 30, 0.18);
+  --bb-tint-p: 9%; --bb-tint-a: 11%; /* chip fills: bottle 9%, walnut 11% */
+}
+/* Dark "graniteware": green-black enamel, light speckle. Fills are light, so text on them is page-dark. */
+:root .v-theme--dark {
+  --v-theme-background: 22, 27, 23; /* #161B17 */
+  --v-theme-surface: 31, 38, 32; /* #1F2620 */
+  --v-theme-on-background: 228, 232, 224; --v-theme-on-surface: 228, 232, 224; /* ink #E4E8E0 */
+  --v-theme-on-primary: 22, 27, 23; --v-theme-on-secondary: 22, 27, 23; --v-theme-on-accent: 22, 27, 23;
+  --v-theme-on-success: 22, 27, 23; --v-theme-on-info: 22, 27, 23; --v-theme-on-warning: 22, 27, 23;
+  --v-theme-on-error: 22, 27, 23;
+  --v-border-color: 228, 232, 224;
+  --v-shadow-color: 0, 0, 0;
+  --bb-page: #161b17; --bb-rim: #9cc79a; /* sage line under the bar */
+  --bb-pencil: #a2a797;
+  --bb-speck: rgba(228, 232, 224, 0.06);
+  --bb-hair: rgba(228, 232, 224, 0.1); --bb-done: rgba(228, 232, 224, 0.14);
+  --bb-foot: rgba(0, 0, 0, 0.55);
+  --bb-lift: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --bb-tint-p: 16%; --bb-tint-a: 16%;
+}
+:root [class*="v-theme--"] {
+  --v-border-opacity: 0.1;
+  --v-font-body: "Source Sans 3", system-ui, sans-serif;
+  --v-font-heading: "Source Sans 3", system-ui, sans-serif;
 }
 
-/* Page: enamel white with one faint speckle. Menus and dialogs live outside the app root. */
-.v-theme--light:is(.v-application, .v-overlay) {
+/* Page: enamel with one faint speckle. Menus and dialogs live outside the app root. */
+:is(.v-application, .v-overlay)[class*="v-theme--"] {
   font-family: "Source Sans 3", system-ui, sans-serif;
 }
-.v-application.v-theme--light {
-  background-color: #eef1ec;
-  background-image: radial-gradient(rgba(46, 79, 53, 0.07) 1px, transparent 1.4px);
+.v-application[class*="v-theme--"] {
+  background-color: var(--bb-page);
+  background-image: radial-gradient(var(--bb-speck) 1px, transparent 1.4px);
   background-size: 9px 9px;
 }
 
 /* Fraunces 800: wordmark, recipe title, section and page headings only.
    801 picks the variable face (it has the SOFT axis) over Google's static 800 fallback. */
-.v-theme--light .v-app-bar .v-toolbar-title,
-.v-theme--light .v-main :is(h1, h2.text-h5, .v-card-title.text-h5, .text-headline-small, .text-headline-medium) {
+[class*="v-theme--"] .v-app-bar .v-toolbar-title,
+[class*="v-theme--"] .v-main :is(h1, h2.text-h5, .v-card-title.text-h5, .text-headline-small, .text-headline-medium) {
   font-family: "Fraunces", Georgia, serif;
   font-weight: 801;
-  font-variation-settings:
-    "opsz" 48,
-    "SOFT" 100;
+  font-variation-settings: "opsz" 48, "SOFT" 100;
   opacity: 1;
 }
 
-/* Top bar: bottle fill (theme primary), "RECIPES" wordmark, enamel rim along the bottom */
-.v-theme--light.v-app-bar .v-toolbar-title {
-  font-size: 20px;
-  letter-spacing: 0.02em;
+/* Top bar: bottle fill in both themes, white pot and "RECIPES", enamel rim along the bottom */
+.v-app-bar[class*="v-theme--"] .v-toolbar-title { font-size: 20px; letter-spacing: 0.02em; }
+/* Dark keeps the bar bottle #2E4F35 (dark mode's primary is a lighter sage, for text on dark) */
+.v-app-bar.v-theme--dark, .v-app-bar .v-theme--dark {
+  --v-theme-primary: 46, 79, 53; --v-theme-primary-darken-1: 35, 61, 41; --v-theme-on-primary: 255, 255, 255;
 }
-.v-theme--light.v-app-bar::after {
+.v-app-bar[class*="v-theme--"]::after {
   content: "";
   position: absolute;
   inset: auto 0 0;
   height: 5px;
   pointer-events: none;
-  background: linear-gradient(#eef1ec 0 2px, rgb(var(--v-theme-primary)) 2px 3px, #eef1ec 3px);
+  background: linear-gradient(var(--bb-page) 0 2px, var(--bb-rim) 2px 3px, var(--bb-page) 3px);
 }
 /* Buttons: square corners. Colour fills stand on a 0-blur foot and sink when pressed (ENAMEL PRESS). */
-.v-theme--light.v-btn {
+.v-btn[class*="v-theme--"] {
   border-radius: 4px;
   letter-spacing: normal;
   box-shadow: none;
 }
-.v-theme--light.v-btn--icon:is(.v-btn--variant-text, .v-btn--variant-plain) {
-  border-radius: 50%;
-}
-.v-theme--light.v-btn:is(.v-btn--variant-elevated, .v-btn--variant-flat)[class*=" bg-"] {
+.v-btn--icon[class*="v-theme--"]:is(.v-btn--variant-text, .v-btn--variant-plain) { border-radius: 50%; }
+.v-btn[class*="v-theme--"]:is(.v-btn--variant-elevated, .v-btn--variant-flat)[class*=" bg-"] {
   box-shadow: 0 2px 0 var(--bb-foot);
   font-weight: 600;
-  transition:
-    transform 180ms cubic-bezier(0.3, 1.4, 0.5, 1),
-    box-shadow 180ms cubic-bezier(0.3, 1.4, 0.5, 1);
+  transition: transform 180ms cubic-bezier(0.3, 1.4, 0.5, 1), box-shadow 180ms cubic-bezier(0.3, 1.4, 0.5, 1);
 }
-.v-theme--light.v-btn:is(.v-btn--variant-elevated, .v-btn--variant-flat)[class*=" bg-"]:active {
+.v-btn[class*="v-theme--"]:is(.v-btn--variant-elevated, .v-btn--variant-flat)[class*=" bg-"]:active {
   transform: translateY(2px);
   box-shadow: 0 0 0 var(--bb-foot);
   transition-duration: 120ms;
   transition-timing-function: ease-out;
 }
 /* Fills, not outlines: an outlined button becomes a light tint of its own colour */
-.v-theme--light.v-btn--variant-outlined {
+.v-btn--variant-outlined[class*="v-theme--"] {
   border-color: transparent;
-  background-color: color-mix(in srgb, currentColor 9%, transparent);
+  background-color: color-mix(in srgb, currentColor var(--bb-tint-p), transparent);
 }
 /* In-page cards: card white, 1px hairline, 14px corners, no shadow or hover lift */
-.v-theme--light .v-main .v-card {
+[class*="v-theme--"] .v-main .v-card {
   border-radius: 14px;
   border: 1px solid var(--bb-hair);
   box-shadow: none;
 }
-.v-theme--light .v-main .v-card .v-card--flat {
-  border: 0;
-}
+[class*="v-theme--"] .v-main .v-card .v-card--flat { border: 0; }
 /* Dialogs, menus, sheets and toasts: no hairline, one overlay lift */
-.v-theme--light .v-overlay__content > :is(.v-card, .v-sheet, .v-list),
-.v-theme--light .v-snackbar__wrapper {
+[class*="v-theme--"] .v-overlay__content > :is(.v-card, .v-sheet, .v-list),
+[class*="v-theme--"] .v-snackbar__wrapper {
   border: 0;
   box-shadow: var(--bb-lift);
 }
-.v-theme--light.v-dialog > .v-overlay__content > .v-card {
-  border-radius: 14px;
-}
+.v-dialog[class*="v-theme--"] > .v-overlay__content > .v-card { border-radius: 14px; }
 
-/* Chips: pill, no border, tinted fill (bottle at 9% or walnut at 11%) with coloured text */
-.v-theme--light.v-chip {
+/* Chips: pill, no border, tinted fill of bottle or walnut with text in that colour */
+.v-chip[class*="v-theme--"] {
   border-radius: 999px;
   font-weight: 600;
   box-shadow: none;
 }
-.v-theme--light.v-chip.bg-primary {
-  background-color: rgba(46, 79, 53, 0.09);
+.v-chip[class*="v-theme--"].bg-primary {
+  background-color: color-mix(in srgb, rgb(var(--v-theme-primary)) var(--bb-tint-p), transparent);
   color: rgb(var(--v-theme-primary));
 }
-.v-theme--light.v-chip.bg-accent {
-  background-color: rgba(122, 78, 45, 0.11);
+.v-chip[class*="v-theme--"].bg-accent {
+  background-color: color-mix(in srgb, rgb(var(--v-theme-accent)) var(--bb-tint-a), transparent);
   color: rgb(var(--v-theme-accent));
 }
 
 /* CHECK-OFF. Ingredients: hairline between rows; ticked = leaf box, pencil text, strike.
    Steps (.disabled-card): fill goes, title in pencil with a strike, Mealie's check shows. */
-.v-theme--light.ingredient-list-item {
-  border-bottom: 1px solid var(--bb-hair);
-}
-.v-theme--light.ingredient-list-item .v-selection-control__input .v-icon {
-  transition: color 150ms ease-out;
-}
-.v-theme--light.ingredient-list-item .ingredient-item,
-.v-theme--light .v-main .v-card .recipe-step-title .summary-wrapper {
+.ingredient-list-item[class*="v-theme--"] { border-bottom: 1px solid var(--bb-hair); }
+.ingredient-list-item[class*="v-theme--"] .v-selection-control__input .v-icon { transition: color 150ms ease-out; }
+.ingredient-list-item[class*="v-theme--"] .ingredient-item,
+[class*="v-theme--"] .v-main .v-card .recipe-step-title .summary-wrapper {
   text-decoration: line-through transparent 1.5px;
-  transition:
-    color 200ms ease-out,
-    text-decoration-color 200ms ease-out;
+  transition: color 200ms ease-out, text-decoration-color 200ms ease-out;
 }
-.v-theme--light.ingredient-list-item:has(.v-selection-control--dirty) .ingredient-item,
-.v-theme--light .v-main .v-card.disabled-card .recipe-step-title .summary-wrapper {
+.ingredient-list-item[class*="v-theme--"]:has(.v-selection-control--dirty) .ingredient-item,
+[class*="v-theme--"] .v-main .v-card.disabled-card .recipe-step-title .summary-wrapper {
   color: var(--bb-pencil);
   text-decoration-color: var(--bb-pencil);
 }
-.v-theme--light .v-main .v-card.disabled-card {
-  background-color: transparent;
-  border-color: rgba(46, 79, 53, 0.14);
-}
+[class*="v-theme--"] .v-main .v-card.disabled-card { background-color: transparent; border-color: var(--bb-done); }
 
 @media (prefers-reduced-motion: reduce) {
-  .v-theme--light.v-btn,
-  .v-theme--light.ingredient-list-item *,
-  .v-theme--light .recipe-step-title * {
-    transition: none !important;
-  }
-  .v-theme--light.v-btn:active {
-    transform: none !important;
-  }
+  .v-btn[class*="v-theme--"], .ingredient-list-item[class*="v-theme--"] *, [class*="v-theme--"] .recipe-step-title * { transition: none !important; }
+  .v-btn[class*="v-theme--"]:active { transform: none !important; }
 }
