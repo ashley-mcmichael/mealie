@@ -85,10 +85,12 @@ jobs:
         run: |
           set -eu
           git -c advice.detachedHead=false checkout -q "${{ steps.base.outputs.base }}"
+          # --no-merges: merging a PR into either branch adds a merge commit,
+          # which cherry-pick refuses. Its changes are in the commits it brings.
           git -c user.name=family-build -c user.email=family-build@users.noreply.github.com \
-            cherry-pick "$PATCH_BASE..patch"
+            cherry-pick --no-merges "$PATCH_BASE..patch"
           git -c user.name=family-build -c user.email=family-build@users.noreply.github.com \
-            cherry-pick "patch..skin"
+            cherry-pick --no-merges "patch..skin"
           git log --oneline -4
 
       - name: Set up Node
