@@ -147,3 +147,23 @@
   .v-btn[class*="v-theme--"], .ingredient-list-item[class*="v-theme--"] *, [class*="v-theme--"] .recipe-step-title * { transition: none !important; }
   .v-btn[class*="v-theme--"]:active { transform: none !important; }
 }
+
+/* INFRA-32: no star ratings (cards and recipe page) and no comments section. !important beats the cards' scoped styles. */
+[class*="v-theme--"] :is(.v-rating, .rating-display),
+[class*="v-theme--"] .v-main .v-container > .px-1.my-4.d-print-none:has(> .v-card-title) { display: none !important; }
+
+/* INFRA-32 print: Mealie hides the page and shows its own print view (.print-container, which follows
+   the user's print preferences). This keeps it black on white with margins, headings kept with what follows. */
+@page { margin: 0.5in; }
+@media print {
+  /* white even in dark mode with background graphics on; html .v-application outranks main.css's dark !important */
+  html, body, html .v-application[class*="v-theme--"], .v-main { background: #fff !important; color-scheme: light; }
+  .v-overlay-container, .v-snackbar { display: none !important; }
+  .print-container .v-card-title.headline {
+    font-family: "Fraunces", Georgia, serif; font-weight: 801; font-variation-settings: "opsz" 48, "SOFT" 100;
+    break-after: avoid;
+  }
+  .print-container :is(h4, h5, h6) { margin: 0.75em 0 0.25em; break-after: avoid; }
+  .print-container .recipe-step-body p { margin-bottom: 0.4em !important; }
+  .print-container :is(.ingredient-cell, .ingredient-body, .recipe-step-body p, li) { break-inside: avoid; }
+}
