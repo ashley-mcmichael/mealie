@@ -291,6 +291,11 @@ describe("tidyScaledIngredient", () => {
     ["4 oz at 4x is 1 lb", oz(4), 4, "1 pound"],
     ["4 oz at 3x stays 12 oz", oz(4), 3, "12 ounce"],
     ["1 lb halved is 8 oz", lb(1), 0.5, "8 ounce"],
+    ["2 lb at 2.1x is 4 1/4 lb, not 67 oz", lb(2), 2.1, "4.25 pound"],
+    ["1 lb at 1.1x is 1 lb, not 17 1/2 oz", lb(1), 1.1, "1 pound"],
+    ["12 oz at 1 1/2x is 1 1/4 lb, not 18 oz", oz(12), 1.5, "1.25 pound"],
+    ["10 oz at 1 1/2x stays 15 oz", oz(10), 1.5, "15 ounce"],
+    ["a hair under a pound is 1 lb, not 16 oz", oz(5.33), 3, "1 pound"],
     ["1500g in metric is 1.5kg", grams(500), 3, "1.5 kilogram"],
   ];
 

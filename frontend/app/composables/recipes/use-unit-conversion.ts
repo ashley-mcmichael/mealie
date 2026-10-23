@@ -52,6 +52,18 @@ const TIDY_DENOMINATORS: Record<string, number[]> = {
 const TIDY_MAX_SPOONS: Record<string, number> = { teaspoon: 8, tablespoon: 8 };
 
 /**
+ * Weight is bought rather than spooned, so a pound amount that no exact fraction fits rounds to
+ * the nearest quarter pound (at most 2 oz out) instead of dropping to a count like 67 ounces.
+ * For the same reason ounces never reach 16: that much is shown in pounds.
+ */
+const TIDY_QUARTER_POUND = 4;
+const OUNCES_PER_POUND = 16;
+
+function nearestQuarterPound(rung: UnitRung, magnitude: number): { rung: UnitRung; quantity: number } {
+  return { rung, quantity: Math.round((magnitude / rung.base) * TIDY_QUARTER_POUND) / TIDY_QUARTER_POUND };
+}
+
+/**
  * Resolve the values needed to convert an ingredient, or null if it can't be converted.
  *
  * An ingredient is only convertible if its unit was matched to a standardized unit when it was
@@ -193,8 +205,17 @@ function findTidyRung(rungs: UnitRung[], magnitude: number): { rung: UnitRung; q
         if (rounded > (TIDY_MAX_SPOONS[rung.unit] ?? Infinity)) {
           return null;
         }
+        // A hair under a pound can still round up to 16 oz; show that as a pound
+        const pound = rungs[i + 1];
+        if (rung.unit === "ounce" && rounded >= OUNCES_PER_POUND && pound?.unit === "pound") {
+          return nearestQuarterPound(pound, magnitude);
+        }
         return { rung, quantity: rounded };
       }
+    }
+
+    if (rung.unit === "pound") {
+      return nearestQuarterPound(rung, magnitude);
     }
   }
 
