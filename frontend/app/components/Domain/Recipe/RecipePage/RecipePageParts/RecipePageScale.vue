@@ -1,5 +1,5 @@
 <template>
-  <div class="d-flex align-center ga-2 pt-2 pb-3">
+  <div class="d-flex flex-wrap align-center ga-2 pt-2 pb-3">
     <RecipeUnitSystemButton
       v-if="!isEditMode"
       :recipe="recipe"

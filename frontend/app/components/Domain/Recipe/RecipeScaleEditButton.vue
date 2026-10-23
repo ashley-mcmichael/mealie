@@ -1,6 +1,7 @@
 <template>
-  <div v-if="yieldDisplay">
-    <div class="text-center d-flex align-center">
+  <!-- display: contents lets these controls wrap inside the parent row, so on a phone the quick picks drop to their own line -->
+  <div v-if="yieldDisplay" class="scale-controls">
+    <div class="scale-controls">
       <div>
         <v-menu
           v-model="menu"
@@ -100,7 +101,6 @@
       </div>
       <BaseButtonGroup
         v-if="canEditScale"
-        class="pl-2"
         :large="false"
         :buttons="[
           {
@@ -118,6 +118,26 @@
         @decrement="recalculateScale(yieldQuantity - 1)"
         @increment="recalculateScale(yieldQuantity + 1)"
       />
+      <!-- quick picks: tap 2x/3x/4x; tap the lit one again to go back to as written -->
+      <v-btn-toggle
+        v-if="canEditScale"
+        :model-value="quickPick"
+        color="primary"
+        density="compact"
+        variant="text"
+        divided
+        @update:model-value="scale = $event || 1"
+      >
+        <v-btn
+          v-for="multiplier in quickMultipliers"
+          :key="multiplier"
+          :value="multiplier"
+          size="small"
+          :aria-label="$t('recipe.scale-by-multiplier', { multiplier })"
+        >
+          {{ multiplier }}x
+        </v-btn>
+      </v-btn-toggle>
     </div>
   </div>
 </template>
@@ -159,7 +179,16 @@ const yieldDisplay = computed(() => {
     : "";
 });
 
+const quickMultipliers = [2, 3, 4];
+const quickPick = computed(() => quickMultipliers.find(m => Math.abs(scale.value - m) < 1e-9) ?? null);
+
 const disableDecrement = computed(() => {
   return yieldQuantity.value <= 1;
 });
 </script>
+
+<style scoped>
+.scale-controls {
+  display: contents;
+}
+</style>
