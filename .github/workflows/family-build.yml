@@ -21,14 +21,16 @@ concurrency: family-build
 
 env:
   UPSTREAM: mealie-recipes/mealie
-  PATCH_BRANCH: smart-scaling
+  # Both branches were rebased onto v3.29.0 (its header title line clashed
+  # with the skin). The old smart-scaling / recipes-bread-bin stay as they were.
+  PATCH_BRANCH: smart-scaling-v3.29
   # Our look (colours, fonts, logo). Branched from PATCH_BRANCH; only its own
   # commits are applied, after the patch. Kept apart so smart-scaling stays
   # clean for upstream.
-  SKIN_BRANCH: recipes-bread-bin
-  # The upstream commit our patch was written on. Until a release contains it
-  # (v3.28.0 does not), we build on this commit itself.
-  PATCH_BASE: 879b133b5f98dd91419948f363d2d6d58793c3a0
+  SKIN_BRANCH: recipes-bread-bin-v3.29
+  # The upstream commit our patch was written on (v3.29.0). Until a release
+  # contains it, we build on this commit itself.
+  PATCH_BASE: 89a14202dd8044749cce444147ea4b301c77af13
 
 jobs:
   build:
@@ -85,10 +87,12 @@ jobs:
         run: |
           set -eu
           git -c advice.detachedHead=false checkout -q "${{ steps.base.outputs.base }}"
+          # --no-merges: merging a PR into either branch adds a merge commit,
+          # which cherry-pick refuses. Its changes are in the commits it brings.
           git -c user.name=family-build -c user.email=family-build@users.noreply.github.com \
-            cherry-pick "$PATCH_BASE..patch"
+            cherry-pick --no-merges "$PATCH_BASE..patch"
           git -c user.name=family-build -c user.email=family-build@users.noreply.github.com \
-            cherry-pick "patch..skin"
+            cherry-pick --no-merges "patch..skin"
           git log --oneline -4
 
       - name: Set up Node
